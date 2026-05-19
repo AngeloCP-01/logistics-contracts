@@ -1,0 +1,104 @@
+openapi: 3.1.0
+info:
+  title: Auth Service
+  version: 0.1.0
+  description: |
+    Issues and validates JWTs. Manages registration, login, refresh, and roles.
+    Full specification is finalized in the Auth service phase.
+
+servers:
+  - url: https://api.<domain>/v1
+    description: Production gateway
+
+paths:
+  /auth/register:
+    post:
+      operationId: register
+      summary: Register a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, role]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                role: { type: string, enum: [customer, driver] }
+      responses:
+        '201':
+          description: Account created
+        '400':
+          $ref: '#/components/responses/ProblemDetails'
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Exchange credentials for an access + refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Tokens issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken, refreshToken]
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+        '401':
+          $ref: '#/components/responses/ProblemDetails'
+
+  /auth/refresh:
+    post:
+      operationId: refresh
+      summary: Exchange a refresh token for a new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: New access token
+        '401':
+          $ref: '#/components/responses/ProblemDetails'
+
+  /healthz:
+    get:
+      operationId: healthz
+      summary: Liveness probe
+      responses:
+        '200': { description: OK }
+
+  /readyz:
+    get:
+      operationId: readyz
+      summary: Readiness probe (checks DB + RabbitMQ)
+      responses:
+        '200': { description: OK }
+        '503': { description: Not ready }
+
+components:
+  responses:
+    ProblemDetails:
+      description: RFC 7807 problem
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/problem-details.json'

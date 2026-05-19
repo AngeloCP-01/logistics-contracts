@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: User Service
+  version: 0.1.0
+  description: |
+    Customer and driver profiles, addresses, preferences.
+    Full specification is finalized in the User service phase.
+
+servers:
+  - url: https://api.<domain>/v1
+    description: Production gateway
+
+paths:
+  /users/me:
+    get:
+      operationId: getMyProfile
+      summary: Get the authenticated user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  email: { type: string, format: email }
+                  role: { type: string, enum: [customer, driver, admin] }
+                  displayName: { type: string }
+        '401':
+          $ref: '#/components/responses/ProblemDetails'
+
+  /healthz:
+    get:
+      operationId: healthz
+      responses:
+        '200': { description: OK }
+
+  /readyz:
+    get:
+      operationId: readyz
+      responses:
+        '200': { description: OK }
+        '503': { description: Not ready }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    ProblemDetails:
+      description: RFC 7807 problem
+      content:
+        application/problem+json:
+          schema:
+            $ref: '../schemas/problem-details.json'
