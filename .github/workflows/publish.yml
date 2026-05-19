@@ -1,0 +1,70 @@
+name: Publish contracts
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run validate
+
+  publish-node:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@<gh-org>'
+      - name: Install root tooling
+        run: npm ci
+      - name: Regenerate types
+        run: npm run generate:node
+      - name: Install package deps
+        working-directory: packages/node
+        run: npm ci
+      - name: Build
+        working-directory: packages/node
+        run: npm run build
+      - name: Test
+        working-directory: packages/node
+        run: npm test
+      - name: Publish
+        working-directory: packages/node
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-python:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Build wheel
+        working-directory: packages/python
+        run: poetry build
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: logistics-contracts-python-wheel
+          path: packages/python/dist/*.whl
