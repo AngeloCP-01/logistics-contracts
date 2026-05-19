@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.logistics/schemas/problem-details.json",
+  "title": "ProblemDetails",
+  "description": "RFC 7807 problem details. Returned by every service for error responses.",
+  "type": "object",
+  "required": ["type", "title", "status"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "format": "uri",
+      "description": "A URI reference identifying the problem type."
+    },
+    "title": {
+      "type": "string",
+      "description": "Short, human-readable summary of the problem type."
+    },
+    "status": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599
+    },
+    "detail": {
+      "type": "string",
+      "description": "Human-readable explanation specific to this occurrence."
+    },
+    "instance": {
+      "type": "string",
+      "description": "A URI reference identifying the specific occurrence."
+    },
+    "requestId": {
+      "type": "string"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "message"],
+        "properties": {
+          "field": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "description": "Per-field validation errors when applicable."
+    }
+  }
+}

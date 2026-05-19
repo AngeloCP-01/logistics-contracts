@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.logistics/schemas/event-envelope.json",
+  "title": "EventEnvelope",
+  "description": "Shared envelope for every event published to the logistics.events exchange.",
+  "type": "object",
+  "required": [
+    "eventId",
+    "eventType",
+    "eventVersion",
+    "occurredAt",
+    "correlationId",
+    "producer",
+    "data"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Globally unique id for this event instance."
+    },
+    "eventType": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+      "description": "Dotted event type, matches the RabbitMQ routing key."
+    },
+    "eventVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "Schema version of the event payload. Additive changes bump minor."
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Propagated from the originating X-Request-Id."
+    },
+    "producer": {
+      "type": "string",
+      "description": "Name of the producing service (e.g., order-service)."
+    },
+    "data": {
+      "type": "object",
+      "description": "Event-specific payload. Validated against the eventType+eventVersion."
+    }
+  },
+  "additionalProperties": false
+}
