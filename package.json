@@ -1,0 +1,17 @@
+{
+  "name": "logistics-contracts-tooling",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tooling-only root package for the logistics-contracts repo. Not published.",
+  "scripts": {
+    "validate:openapi": "redocly lint openapi/auth-service.yaml openapi/user-service.yaml",
+    "validate:asyncapi": "asyncapi validate events/asyncapi.yaml",
+    "validate": "bash scripts/validate.sh",
+    "generate:node": "bash scripts/generate-node-types.sh"
+  },
+  "devDependencies": {
+    "@asyncapi/cli": "^2.13.0",
+    "@redocly/cli": "^1.17.0",
+    "json-schema-to-typescript": "^15.0.0"
+  }
+}
