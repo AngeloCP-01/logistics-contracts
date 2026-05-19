@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+dist/
+*.egg-info/
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+
+# Generated (kept in source, but ignore stray files)
+*.local
