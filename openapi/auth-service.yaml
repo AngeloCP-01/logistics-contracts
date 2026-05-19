@@ -15,6 +15,7 @@ paths:
     post:
       operationId: register
       summary: Register a new account
+      security: []
       requestBody:
         required: true
         content:
@@ -36,6 +37,7 @@ paths:
     post:
       operationId: login
       summary: Exchange credentials for an access + refresh token
+      security: []
       requestBody:
         required: true
         content:
@@ -64,6 +66,7 @@ paths:
     post:
       operationId: refresh
       summary: Exchange a refresh token for a new access token
+      security: []
       requestBody:
         required: true
         content:
@@ -83,6 +86,7 @@ paths:
     get:
       operationId: healthz
       summary: Liveness probe
+      security: []
       responses:
         '200': { description: OK }
 
@@ -90,6 +94,7 @@ paths:
     get:
       operationId: readyz
       summary: Readiness probe (checks DB + RabbitMQ)
+      security: []
       responses:
         '200': { description: OK }
         '503': { description: Not ready }

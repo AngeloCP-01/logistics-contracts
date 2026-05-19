@@ -35,12 +35,16 @@ paths:
   /healthz:
     get:
       operationId: healthz
+      summary: Liveness probe
+      security: []
       responses:
         '200': { description: OK }
 
   /readyz:
     get:
       operationId: readyz
+      summary: Readiness probe (checks DB)
+      security: []
       responses:
         '200': { description: OK }
         '503': { description: Not ready }
