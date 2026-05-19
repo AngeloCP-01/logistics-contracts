@@ -1,0 +1,49 @@
+asyncapi: 3.0.0
+info:
+  title: Logistics Platform Events
+  version: 0.1.0
+  description: |
+    All async events flowing through the logistics.events RabbitMQ topic exchange.
+    v0.1.0 declares the Auth event. Additional events land in subsequent phases.
+
+servers:
+  rabbitmq:
+    host: '{{ RABBITMQ_HOST }}'
+    protocol: amqp
+    description: RabbitMQ broker (CloudAMQP in prod, local container in dev)
+
+channels:
+  userRegistered:
+    address: 'user.registered'
+    description: Published by auth-service when a user finishes registration.
+    messages:
+      UserRegistered:
+        $ref: '#/components/messages/UserRegistered'
+
+operations:
+  publishUserRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/userRegistered'
+
+components:
+  messages:
+    UserRegistered:
+      name: UserRegistered
+      title: User Registered
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType:
+            const: user.registered
+          data:
+            type: object
+            required: [userId, email, role]
+            properties:
+              userId: { type: string, format: uuid }
+              email: { type: string, format: email }
+              role: { type: string, enum: [customer, driver] }
