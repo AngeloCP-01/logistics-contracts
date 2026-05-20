@@ -2,7 +2,7 @@
 name = "logistics-contracts"
 version = "0.1.0"
 description = "Inter-service contracts for the AI Logistics Platform (Python types + JSON Schemas)."
-authors = ["<gh-org> <noreply@example.com>"]
+authors = ["angelocp-01 <noreply@example.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{ include = "logistics_contracts" }]

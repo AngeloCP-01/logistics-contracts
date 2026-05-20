@@ -1,11 +1,11 @@
-# @<gh-org>/logistics-contracts
+# @angelocp-01/logistics-contracts
 
 TypeScript types and JSON Schemas for the AI Logistics Platform.
 
 ## Install
 
 ```bash
-npm install @<gh-org>/logistics-contracts
+npm install @angelocp-01/logistics-contracts
 ```
 
 (Requires npm to be authenticated against GitHub Packages — see the platform README.)
@@ -13,8 +13,8 @@ npm install @<gh-org>/logistics-contracts
 ## Use
 
 ```ts
-import { EventEnvelope, ProblemDetails, CONTRACTS_VERSION } from "@<gh-org>/logistics-contracts";
+import { EventEnvelope, ProblemDetails, CONTRACTS_VERSION } from "@angelocp-01/logistics-contracts";
 
 // JSON Schemas ship alongside the types for runtime validation:
-import envelopeSchema from "@<gh-org>/logistics-contracts/schemas/event-envelope.json";
+import envelopeSchema from "@angelocp-01/logistics-contracts/schemas/event-envelope.json";
 ```

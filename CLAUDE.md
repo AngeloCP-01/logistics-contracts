@@ -16,7 +16,7 @@ The single source of truth that every other repo depends on for cross-service sh
 | OpenAPI 3.1 specs | `openapi/<service>.yaml` | Each service's CI runs contract validation against its spec |
 | AsyncAPI 3.0 spec | `events/asyncapi.yaml` | Event producers + consumers reference this for routing keys + payload schemas |
 | Shared JSON Schemas | `schemas/*.json` | `event-envelope.json`, `problem-details.json` |
-| Node package | `packages/node/` published as `@<gh-org>/logistics-contracts` to GitHub Packages | All Node services |
+| Node package | `packages/node/` published as `@angelocp-01/logistics-contracts` to GitHub Packages | All Node services |
 | Python wheel | `packages/python/` published as `logistics-contracts` (skeleton in v0.1.0) | AI service (later) |
 
 ## Locked decisions
@@ -38,7 +38,7 @@ schemas/                        # JSON Schemas (the source of truth)
   event-envelope.json
   problem-details.json
 packages/
-  node/                         # @<gh-org>/logistics-contracts (npm)
+  node/                         # @angelocp-01/logistics-contracts (npm)
     src/index.ts                # public exports
     src/envelope.ts             # GENERATED — do not edit
     src/problem.ts              # GENERATED — do not edit

@@ -1,5 +1,5 @@
 {
-  "name": "@<gh-org>/logistics-contracts",
+  "name": "@angelocp-01/logistics-contracts",
   "version": "0.1.0",
   "description": "Inter-service contracts for the AI Logistics Platform (TypeScript types + JSON Schemas).",
   "main": "dist/index.js",
@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/<gh-org>/logistics-contracts.git",
+    "url": "git+https://github.com/angelocp-01/logistics-contracts.git",
     "directory": "packages/node"
   },
   "license": "MIT",

@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@<gh-org>'
+          scope: '@angelocp-01'
       - name: Install root tooling
         run: npm ci
       - name: Regenerate types

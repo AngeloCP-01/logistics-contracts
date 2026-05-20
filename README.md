@@ -9,7 +9,7 @@ Inter-service contracts for the AI Logistics Platform. Authoritative for HTTP (O
 | `openapi/` | OpenAPI 3.1 specs, one per public service |
 | `events/asyncapi.yaml` | AsyncAPI 3.0 spec for the `logistics.events` topic exchange |
 | `schemas/` | Shared JSON Schemas referenced by both |
-| `packages/node/` | Published as `@<gh-org>/logistics-contracts` on GitHub Packages |
+| `packages/node/` | Published as `@angelocp-01/logistics-contracts` on GitHub Packages |
 | `packages/python/` | Published as `logistics-contracts` (Python wheel) |
 | `scripts/validate.sh` | Lint + validate all contract files |
 | `scripts/generate-node-types.sh` | Regenerate TS types from JSON Schemas |
