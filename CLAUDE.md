@@ -27,6 +27,17 @@ The single source of truth that every other repo depends on for cross-service sh
 - **Error format**: every service returns RFC 7807 Problem Details with `application/problem+json`.
 - **Type generation**: Node TS types are generated from JSON Schemas via `json-schema-to-typescript`. Generated files have a "DO NOT EDIT" banner.
 
+## Current event catalog (v0.2.0)
+
+| Routing key                         | Producer     | Phase added |
+| ----------------------------------- | ------------ | ----------- |
+| `user.registered`                   | auth-service | 0           |
+| `user.email_verification_requested` | auth-service | 1           |
+| `user.email_verified`               | auth-service | 1           |
+| `user.password_reset_requested`     | auth-service | 1           |
+| `user.password_changed`             | auth-service | 1           |
+| `user.role_changed`                 | auth-service | 1           |
+
 ## Layout (after Phase 0 ships)
 
 ```
