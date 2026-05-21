@@ -1,6 +1,6 @@
 {
   "name": "@angelocp-01/logistics-contracts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Inter-service contracts for the AI Logistics Platform (TypeScript types + JSON Schemas).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

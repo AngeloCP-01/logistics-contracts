@@ -3,7 +3,7 @@ import type { EventEnvelope, ProblemDetails } from "../src/index";
 
 describe("logistics-contracts package", () => {
   it("exports the version constant", () => {
-    expect(CONTRACTS_VERSION).toBe("0.1.0");
+    expect(CONTRACTS_VERSION).toBe("0.2.0");
   });
 
   it("compiles a sample EventEnvelope", () => {
