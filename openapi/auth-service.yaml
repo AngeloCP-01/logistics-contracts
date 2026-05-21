@@ -1,10 +1,11 @@
 openapi: 3.1.0
 info:
   title: Auth Service
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    Issues and validates JWTs. Manages registration, login, refresh, and roles.
-    Full specification is finalized in the Auth service phase.
+    Issues + validates JWTs. Manages registration, login, refresh-with-rotation,
+    password reset, soft email verification, admin role elevation, and admin unlock.
+    Full design: docs/superpowers/specs/2026-05-20-auth-service-design.md.
 
 servers:
   - url: https://api.<domain>/v1
@@ -14,58 +15,66 @@ paths:
   /auth/register:
     post:
       operationId: register
-      summary: Register a new account
+      summary: Register a new customer or driver account
       security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [email, password, role]
-              properties:
-                email: { type: string, format: email }
-                password: { type: string, minLength: 8 }
-                role: { type: string, enum: [customer, driver] }
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
       responses:
         '201':
           description: Account created
-        '400':
-          $ref: '#/components/responses/ProblemDetails'
+          headers:
+            Location: { schema: { type: string }, description: URL of the new resource }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegisterResponse' }
+        '400': { $ref: '#/components/responses/ProblemDetails' }
+        '409': { $ref: '#/components/responses/ProblemDetails' }
 
   /auth/login:
     post:
       operationId: login
-      summary: Exchange credentials for an access + refresh token
+      summary: Exchange credentials for an access + refresh token pair
       security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [email, password]
-              properties:
-                email: { type: string, format: email }
-                password: { type: string }
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
         '200':
           description: Tokens issued
           content:
             application/json:
-              schema:
-                type: object
-                required: [accessToken, refreshToken]
-                properties:
-                  accessToken: { type: string }
-                  refreshToken: { type: string }
-        '401':
-          $ref: '#/components/responses/ProblemDetails'
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401': { $ref: '#/components/responses/ProblemDetails' }
+        '423': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the current refresh token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '204': { description: Revoked (idempotent) }
+        '401': { $ref: '#/components/responses/ProblemDetails' }
 
   /auth/refresh:
     post:
       operationId: refresh
-      summary: Exchange a refresh token for a new access token
+      summary: Rotate to a new access + refresh token pair
       security: []
       requestBody:
         required: true
@@ -78,9 +87,152 @@ paths:
                 refreshToken: { type: string }
       responses:
         '200':
-          description: New access token
-        '401':
-          $ref: '#/components/responses/ProblemDetails'
+          description: New token pair
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/password-reset/request:
+    post:
+      operationId: requestPasswordReset
+      summary: Request a password-reset link (always returns 202)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '202':
+          description: Always returned; body may include dev token when AUTH_RETURN_RESET_TOKEN=true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        '429': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/password-reset/confirm:
+    post:
+      operationId: confirmPasswordReset
+      summary: Set a new password using a reset token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token: { type: string }
+                newPassword: { type: string, minLength: 8, maxLength: 128 }
+      responses:
+        '204': { description: Password changed }
+        '400': { $ref: '#/components/responses/ProblemDetails' }
+        '422': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      summary: Mark the user's email verified
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '204': { description: Verified }
+        '400': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/verify-email/resend:
+    post:
+      operationId: resendVerification
+      summary: Issue a fresh verification token (revokes prior unused tokens)
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Token issued; body may include dev token when AUTH_RETURN_VERIFICATION_TOKEN=true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        '409': { $ref: '#/components/responses/ProblemDetails' }
+        '429': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/me:
+    get:
+      operationId: getMe
+      summary: Get the current user's profile from the access token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/users/{id}/role:
+    post:
+      operationId: changeUserRole
+      summary: Admin-only — change a user's role
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [customer, driver, admin] }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '403': { $ref: '#/components/responses/ProblemDetails' }
+        '404': { $ref: '#/components/responses/ProblemDetails' }
+
+  /auth/users/{id}/unlock:
+    post:
+      operationId: unlockUser
+      summary: Admin-only — clear a user's per-email lockout counter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Unlocked }
+        '404': { $ref: '#/components/responses/ProblemDetails' }
 
   /healthz:
     get:
@@ -100,6 +252,54 @@ paths:
         '503': { description: Not ready }
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, role]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 128 }
+        role: { type: string, enum: [customer, driver] }
+
+    RegisterResponse:
+      type: object
+      required: [userId]
+      properties:
+        userId: { type: string, format: uuid }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    TokenPair:
+      type: object
+      required: [accessToken, refreshToken, expiresIn, tokenType]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        expiresIn: { type: integer, description: Seconds until access token expiry }
+        tokenType: { type: string, enum: [Bearer] }
+
+    Me:
+      type: object
+      required: [id, email, role, emailVerified, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [customer, driver, admin] }
+        emailVerified: { type: boolean }
+        status: { type: string, enum: [active, disabled] }
+        createdAt: { type: string, format: date-time }
+
   responses:
     ProblemDetails:
       description: RFC 7807 problem
