@@ -18,3 +18,4 @@ dist/
 
 # Generated (kept in source, but ignore stray files)
 *.local
+.env
