@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Logistics Platform Events
-  version: 0.1.0
+  version: 0.2.0
   description: |
     All async events flowing through the logistics.events RabbitMQ topic exchange.
-    v0.1.0 declares the Auth event. Additional events land in subsequent phases.
+    v0.2.0 adds five auth-service lifecycle events.
 
 servers:
   rabbitmq:
@@ -20,11 +20,60 @@ channels:
       UserRegistered:
         $ref: '#/components/messages/UserRegistered'
 
+  userEmailVerificationRequested:
+    address: 'user.email_verification_requested'
+    description: Published by auth-service at registration and on /verify-email/resend.
+    messages:
+      UserEmailVerificationRequested:
+        $ref: '#/components/messages/UserEmailVerificationRequested'
+
+  userEmailVerified:
+    address: 'user.email_verified'
+    description: Published by auth-service when a user completes email verification.
+    messages:
+      UserEmailVerified:
+        $ref: '#/components/messages/UserEmailVerified'
+
+  userPasswordResetRequested:
+    address: 'user.password_reset_requested'
+    description: Published by auth-service when a password-reset is requested for an existing account.
+    messages:
+      UserPasswordResetRequested:
+        $ref: '#/components/messages/UserPasswordResetRequested'
+
+  userPasswordChanged:
+    address: 'user.password_changed'
+    description: Published by auth-service on successful password reset confirmation.
+    messages:
+      UserPasswordChanged:
+        $ref: '#/components/messages/UserPasswordChanged'
+
+  userRoleChanged:
+    address: 'user.role_changed'
+    description: Published by auth-service when an admin changes a user's role (and the role actually changed).
+    messages:
+      UserRoleChanged:
+        $ref: '#/components/messages/UserRoleChanged'
+
 operations:
   publishUserRegistered:
     action: send
-    channel:
-      $ref: '#/channels/userRegistered'
+    channel: { $ref: '#/channels/userRegistered' }
+  publishUserEmailVerificationRequested:
+    action: send
+    channel: { $ref: '#/channels/userEmailVerificationRequested' }
+  publishUserEmailVerified:
+    action: send
+    channel: { $ref: '#/channels/userEmailVerified' }
+  publishUserPasswordResetRequested:
+    action: send
+    channel: { $ref: '#/channels/userPasswordResetRequested' }
+  publishUserPasswordChanged:
+    action: send
+    channel: { $ref: '#/channels/userPasswordChanged' }
+  publishUserRoleChanged:
+    action: send
+    channel: { $ref: '#/channels/userRoleChanged' }
 
 components:
   messages:
@@ -38,8 +87,7 @@ components:
         allOf:
           - $ref: '../schemas/event-envelope.json'
         properties:
-          eventType:
-            const: user.registered
+          eventType: { const: user.registered }
           data:
             type: object
             required: [userId, email, role]
@@ -47,3 +95,108 @@ components:
               userId: { type: string, format: uuid }
               email: { type: string, format: email }
               role: { type: string, enum: [customer, driver] }
+            additionalProperties: false
+
+    UserEmailVerificationRequested:
+      name: UserEmailVerificationRequested
+      title: User Email Verification Requested
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: user.email_verification_requested }
+          data:
+            type: object
+            required: [userId, email, verificationToken, expiresAt]
+            properties:
+              userId: { type: string, format: uuid }
+              email: { type: string, format: email }
+              verificationToken: { type: string, minLength: 32 }
+              expiresAt: { type: string, format: date-time }
+            additionalProperties: false
+
+    UserEmailVerified:
+      name: UserEmailVerified
+      title: User Email Verified
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: user.email_verified }
+          data:
+            type: object
+            required: [userId, email, verifiedAt]
+            properties:
+              userId: { type: string, format: uuid }
+              email: { type: string, format: email }
+              verifiedAt: { type: string, format: date-time }
+            additionalProperties: false
+
+    UserPasswordResetRequested:
+      name: UserPasswordResetRequested
+      title: User Password Reset Requested
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: user.password_reset_requested }
+          data:
+            type: object
+            required: [userId, email, resetToken, expiresAt]
+            properties:
+              userId: { type: string, format: uuid }
+              email: { type: string, format: email }
+              resetToken: { type: string, minLength: 32 }
+              expiresAt: { type: string, format: date-time }
+            additionalProperties: false
+
+    UserPasswordChanged:
+      name: UserPasswordChanged
+      title: User Password Changed
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: user.password_changed }
+          data:
+            type: object
+            required: [userId, email, changedAt]
+            properties:
+              userId: { type: string, format: uuid }
+              email: { type: string, format: email }
+              changedAt: { type: string, format: date-time }
+            additionalProperties: false
+
+    UserRoleChanged:
+      name: UserRoleChanged
+      title: User Role Changed
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: user.role_changed }
+          data:
+            type: object
+            required: [userId, oldRole, newRole, changedBy, changedAt]
+            properties:
+              userId: { type: string, format: uuid }
+              oldRole: { type: string, enum: [customer, driver, admin] }
+              newRole: { type: string, enum: [customer, driver, admin] }
+              changedBy: { type: string, format: uuid }
+              changedAt: { type: string, format: date-time }
+            additionalProperties: false
