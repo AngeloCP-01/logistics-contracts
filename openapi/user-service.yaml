@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: User Service
-  version: 0.1.0
+  version: 0.3.0
   description: |
-    Customer and driver profiles, addresses, preferences.
-    Full specification is finalized in the User service phase.
+    Profile CRUD for customers + drivers, address CRUD, driver availability toggle.
+    Spec: docs/superpowers/specs/2026-05-29-user-service-design.md
 
 servers:
   - url: https://api.<domain>/v1
@@ -17,20 +17,239 @@ paths:
       summary: Get the authenticated user's profile
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: 'common.yaml#/components/parameters/XRequestId'
       responses:
         '200':
           description: Profile
           content:
             application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
+    patch:
+      operationId: updateMyProfile
+      summary: Update display name and/or phone
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateProfileRequest' }
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: 'common.yaml#/components/responses/Forbidden' }
+
+  /users/me/addresses:
+    get:
+      operationId: listMyAddresses
+      summary: List caller's addresses
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of addresses
+          content:
+            application/json:
               schema:
                 type: object
+                required: [items, nextCursor]
                 properties:
-                  id: { type: string, format: uuid }
-                  email: { type: string, format: email }
-                  role: { type: string, enum: [customer, driver, admin] }
-                  displayName: { type: string }
-        '401':
-          $ref: '#/components/responses/ProblemDetails'
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Address' }
+                  nextCursor: { type: [string, 'null'] }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+    post:
+      operationId: createAddress
+      summary: Create a new address
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAddressRequest' }
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Address' }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+
+  /users/me/addresses/{id}:
+    patch:
+      operationId: updateAddress
+      summary: Update an address
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAddressRequest' }
+      responses:
+        '200':
+          description: Updated address
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Address' }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
+    delete:
+      operationId: deleteAddress
+      summary: Delete an address (rejects if currently the default)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
+        '409':
+          description: Default address in use
+          content:
+            application/problem+json:
+              schema: { $ref: 'common.yaml#/components/schemas/ProblemDetails' }
+
+  /users/me/default-address:
+    put:
+      operationId: setDefaultAddress
+      summary: Set the customer's default address
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [addressId]
+              properties:
+                addressId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
+
+  /users/me/driver:
+    patch:
+      operationId: updateDriverProfile
+      summary: Update driver attributes (vehicle type, license plate) — drivers only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicleType: { type: string, enum: [motorcycle, car, van, truck] }
+                licensePlate: { type: string, minLength: 1, maxLength: 20 }
+      responses:
+        '200':
+          description: Updated driver profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: 'common.yaml#/components/responses/Forbidden' }
+
+  /users/me/availability:
+    put:
+      operationId: setAvailability
+      summary: Toggle driver availability — drivers only
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [available]
+              properties:
+                available: { type: boolean }
+      responses:
+        '200':
+          description: Updated driver profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MyProfile' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '403': { $ref: 'common.yaml#/components/responses/Forbidden' }
+        '409':
+          description: Driver profile incomplete
+          content:
+            application/problem+json:
+              schema: { $ref: 'common.yaml#/components/schemas/ProblemDetails' }
+
+  /users/internal/drivers/{userId}:
+    get:
+      operationId: getDriverInternal
+      summary: Service-to-service driver lookup (dispatch-service)
+      security:
+        - serviceAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Driver
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InternalDriver' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
+
+  /users/internal/addresses/{addressId}:
+    get:
+      operationId: getAddressInternal
+      summary: Service-to-service address lookup (order-service)
+      security:
+        - serviceAuth: []
+      parameters:
+        - in: path
+          name: addressId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Address
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Address' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
 
   /healthz:
     get:
@@ -43,11 +262,15 @@ paths:
   /readyz:
     get:
       operationId: readyz
-      summary: Readiness probe (checks DB)
+      summary: Readiness probe (checks DB + RabbitMQ)
       security: []
       responses:
         '200': { description: OK }
-        '503': { description: Not ready }
+        '503':
+          description: Not ready
+          content:
+            application/problem+json:
+              schema: { $ref: 'common.yaml#/components/schemas/ProblemDetails' }
 
 components:
   securitySchemes:
@@ -55,10 +278,80 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-  responses:
-    ProblemDetails:
-      description: RFC 7807 problem
-      content:
-        application/problem+json:
-          schema:
-            $ref: '../schemas/problem-details.json'
+    serviceAuth:
+      type: apiKey
+      in: header
+      name: X-Service-Authorization
+      description: Service JWT prefixed with `Bearer ` — audience must equal `user-service`.
+
+  schemas:
+    MyProfile:
+      type: object
+      required: [userId, role, displayName, defaultAddressId]
+      properties:
+        userId: { type: string, format: uuid }
+        role: { type: string, enum: [customer, driver, admin] }
+        displayName: { type: string }
+        phone: { type: [string, 'null'] }
+        defaultAddressId: { type: [string, 'null'], format: uuid }
+        driver:
+          type: object
+          nullable: true
+          required: [vehicleType, licensePlate, isAvailable, profileComplete]
+          properties:
+            vehicleType: { type: [string, 'null'], enum: [motorcycle, car, van, truck, null] }
+            licensePlate: { type: [string, 'null'] }
+            isAvailable: { type: boolean }
+            profileComplete: { type: boolean }
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+        phone: { type: [string, 'null'], minLength: 7, maxLength: 20 }
+
+    Address:
+      type: object
+      required: [id, userId, label, street, city, country, lat, lng]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        label: { type: string }
+        street: { type: string }
+        city: { type: string }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+
+    CreateAddressRequest:
+      type: object
+      required: [label, street, city, country, lat, lng]
+      properties:
+        label: { type: string, minLength: 1, maxLength: 40 }
+        street: { type: string, minLength: 1, maxLength: 200 }
+        city: { type: string, minLength: 1, maxLength: 80 }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+
+    UpdateAddressRequest:
+      type: object
+      properties:
+        label: { type: string, minLength: 1, maxLength: 40 }
+        street: { type: string, minLength: 1, maxLength: 200 }
+        city: { type: string, minLength: 1, maxLength: 80 }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+
+    InternalDriver:
+      type: object
+      required: [userId, displayName, vehicleType, licensePlate, isAvailable, profileComplete]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+        phone: { type: [string, 'null'] }
+        vehicleType: { type: [string, 'null'], enum: [motorcycle, car, van, truck, null] }
+        licensePlate: { type: [string, 'null'] }
+        isAvailable: { type: boolean }
+        profileComplete: { type: boolean }
