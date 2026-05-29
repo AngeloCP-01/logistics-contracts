@@ -30,7 +30,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RegisterResponse' }
-        '400': { $ref: '#/components/responses/ProblemDetails' }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
         '409': { $ref: '#/components/responses/ProblemDetails' }
 
   /auth/login:
@@ -49,7 +49,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TokenPair' }
-        '401': { $ref: '#/components/responses/ProblemDetails' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
         '423': { $ref: '#/components/responses/ProblemDetails' }
 
   /auth/logout:
@@ -69,7 +69,7 @@ paths:
                 refreshToken: { type: string }
       responses:
         '204': { description: Revoked (idempotent) }
-        '401': { $ref: '#/components/responses/ProblemDetails' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
 
   /auth/refresh:
     post:
@@ -91,7 +91,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TokenPair' }
-        '401': { $ref: '#/components/responses/ProblemDetails' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
 
   /auth/password-reset/request:
     post:
@@ -136,7 +136,7 @@ paths:
                 newPassword: { type: string, minLength: 8, maxLength: 128 }
       responses:
         '204': { description: Password changed }
-        '400': { $ref: '#/components/responses/ProblemDetails' }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
         '422': { $ref: '#/components/responses/ProblemDetails' }
 
   /auth/verify-email:
@@ -155,7 +155,7 @@ paths:
                 token: { type: string }
       responses:
         '204': { description: Verified }
-        '400': { $ref: '#/components/responses/ProblemDetails' }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
 
   /auth/verify-email/resend:
     post:
@@ -188,7 +188,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Me' }
-        '401': { $ref: '#/components/responses/ProblemDetails' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
 
   /auth/users/{id}/role:
     post:
@@ -216,8 +216,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Me' }
-        '403': { $ref: '#/components/responses/ProblemDetails' }
-        '404': { $ref: '#/components/responses/ProblemDetails' }
+        '403': { $ref: 'common.yaml#/components/responses/Forbidden' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
 
   /auth/users/{id}/unlock:
     post:
@@ -232,7 +232,7 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         '204': { description: Unlocked }
-        '404': { $ref: '#/components/responses/ProblemDetails' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
 
   /healthz:
     get:
@@ -306,4 +306,4 @@ components:
       content:
         application/problem+json:
           schema:
-            $ref: '../schemas/problem-details.json'
+            $ref: 'common.yaml#/components/schemas/ProblemDetails'
