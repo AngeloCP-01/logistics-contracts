@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Logistics Platform Events
-  version: 0.2.0
+  version: 0.3.0
   description: |
     All async events flowing through the logistics.events RabbitMQ topic exchange.
-    v0.2.0 adds five auth-service lifecycle events.
+    v0.3.0 adds driver.availability.changed (user-service).
 
 servers:
   rabbitmq:
@@ -55,6 +55,13 @@ channels:
       UserRoleChanged:
         $ref: '#/components/messages/UserRoleChanged'
 
+  driverAvailabilityChanged:
+    address: 'driver.availability.changed'
+    description: Published by user-service when a driver toggles their availability. Also emitted by user-service on role-change cleanup when a previously-available driver is demoted.
+    messages:
+      DriverAvailabilityChanged:
+        $ref: '#/components/messages/DriverAvailabilityChanged'
+
 operations:
   publishUserRegistered:
     action: send
@@ -74,6 +81,9 @@ operations:
   publishUserRoleChanged:
     action: send
     channel: { $ref: '#/channels/userRoleChanged' }
+  publishDriverAvailabilityChanged:
+    action: send
+    channel: { $ref: '#/channels/driverAvailabilityChanged' }
 
 components:
   messages:
@@ -198,5 +208,25 @@ components:
               oldRole: { type: string, enum: [customer, driver, admin] }
               newRole: { type: string, enum: [customer, driver, admin] }
               changedBy: { type: string, format: uuid }
+              changedAt: { type: string, format: date-time }
+            additionalProperties: false
+
+    DriverAvailabilityChanged:
+      name: DriverAvailabilityChanged
+      title: Driver Availability Changed
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: driver.availability.changed }
+          data:
+            type: object
+            required: [userId, isAvailable, changedAt]
+            properties:
+              userId: { type: string, format: uuid }
+              isAvailable: { type: boolean }
               changedAt: { type: string, format: date-time }
             additionalProperties: false
