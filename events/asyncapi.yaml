@@ -62,6 +62,48 @@ channels:
       DriverAvailabilityChanged:
         $ref: '#/components/messages/DriverAvailabilityChanged'
 
+  orderCreated:
+    address: 'order.created'
+    description: Published by order-service when a new order is created.
+    messages:
+      OrderCreated:
+        $ref: '#/components/messages/OrderCreated'
+
+  orderStatusChanged:
+    address: 'order.status.changed'
+    description: Published by order-service when an order transitions between statuses.
+    messages:
+      OrderStatusChanged:
+        $ref: '#/components/messages/OrderStatusChanged'
+
+  orderCancelled:
+    address: 'order.cancelled'
+    description: Published by order-service when an order is cancelled.
+    messages:
+      OrderCancelled:
+        $ref: '#/components/messages/OrderCancelled'
+
+  dispatchDriverAssigned:
+    address: 'dispatch.driver.assigned'
+    description: Consumed by order-service. Produced by dispatch-service (later phase) when a driver is assigned to an order.
+    messages:
+      DispatchDriverAssigned:
+        $ref: '#/components/messages/DispatchDriverAssigned'
+
+  deliveryInTransit:
+    address: 'delivery.in_transit'
+    description: Consumed by order-service. Produced by dispatch/tracking (later phase) when a delivery goes in transit.
+    messages:
+      DeliveryInTransit:
+        $ref: '#/components/messages/DeliveryInTransit'
+
+  deliveryCompleted:
+    address: 'delivery.completed'
+    description: Consumed by order-service. Produced by dispatch/tracking (later phase) when a delivery is completed.
+    messages:
+      DeliveryCompleted:
+        $ref: '#/components/messages/DeliveryCompleted'
+
 operations:
   publishUserRegistered:
     action: send
@@ -84,6 +126,24 @@ operations:
   publishDriverAvailabilityChanged:
     action: send
     channel: { $ref: '#/channels/driverAvailabilityChanged' }
+  publishOrderCreated:
+    action: send
+    channel: { $ref: '#/channels/orderCreated' }
+  publishOrderStatusChanged:
+    action: send
+    channel: { $ref: '#/channels/orderStatusChanged' }
+  publishOrderCancelled:
+    action: send
+    channel: { $ref: '#/channels/orderCancelled' }
+  receiveDispatchDriverAssigned:
+    action: receive
+    channel: { $ref: '#/channels/dispatchDriverAssigned' }
+  receiveDeliveryInTransit:
+    action: receive
+    channel: { $ref: '#/channels/deliveryInTransit' }
+  receiveDeliveryCompleted:
+    action: receive
+    channel: { $ref: '#/channels/deliveryCompleted' }
 
 components:
   messages:
@@ -230,3 +290,147 @@ components:
               isAvailable: { type: boolean }
               changedAt: { type: string, format: date-time }
             additionalProperties: false
+
+    OrderCreated:
+      name: OrderCreated
+      title: Order Created
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: order.created }
+          producer: { const: order-service }
+          data:
+            type: object
+            required: [orderId, customerId, pickup, dropoff, items]
+            properties:
+              orderId: { type: string, format: uuid }
+              customerId: { type: string, format: uuid }
+              pickup: { $ref: '#/components/schemas/AddressSnapshot' }
+              dropoff: { $ref: '#/components/schemas/AddressSnapshot' }
+              items:
+                type: array
+                items: { $ref: '#/components/schemas/OrderItemPayload' }
+              scheduledFor: { type: [string, 'null'], format: date-time }
+            additionalProperties: false
+
+    OrderStatusChanged:
+      name: OrderStatusChanged
+      title: Order Status Changed
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: order.status.changed }
+          producer: { const: order-service }
+          data:
+            type: object
+            required: [orderId, fromStatus, toStatus, changedBy]
+            properties:
+              orderId: { type: string, format: uuid }
+              fromStatus: { type: [string, 'null'], enum: [created, assigned, in_transit, completed, cancelled, null] }
+              toStatus: { type: string, enum: [created, assigned, in_transit, completed, cancelled] }
+              changedBy: { type: string }
+            additionalProperties: false
+
+    OrderCancelled:
+      name: OrderCancelled
+      title: Order Cancelled
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: order.cancelled }
+          producer: { const: order-service }
+          data:
+            type: object
+            required: [orderId, customerId, previousStatus, reason]
+            properties:
+              orderId: { type: string, format: uuid }
+              customerId: { type: string, format: uuid }
+              previousStatus: { type: string, enum: [created, assigned, in_transit] }
+              reason: { type: [string, 'null'] }
+            additionalProperties: false
+
+    DispatchDriverAssigned:
+      name: DispatchDriverAssigned
+      title: Dispatch Driver Assigned
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: dispatch.driver.assigned }
+          data:
+            type: object
+            required: [orderId, driverId]
+            properties:
+              orderId: { type: string, format: uuid }
+              driverId: { type: string, format: uuid }
+            additionalProperties: false
+
+    DeliveryInTransit:
+      name: DeliveryInTransit
+      title: Delivery In Transit
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: delivery.in_transit }
+          data:
+            type: object
+            required: [orderId]
+            properties:
+              orderId: { type: string, format: uuid }
+            additionalProperties: false
+
+    DeliveryCompleted:
+      name: DeliveryCompleted
+      title: Delivery Completed
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: delivery.completed }
+          data:
+            type: object
+            required: [orderId]
+            properties:
+              orderId: { type: string, format: uuid }
+            additionalProperties: false
+
+  schemas:
+    AddressSnapshot:
+      type: object
+      required: [street, city, country, lat, lng]
+      properties:
+        label: { type: string }
+        street: { type: string }
+        city: { type: string }
+        country: { type: string, minLength: 2, maxLength: 2 }
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+    OrderItemPayload:
+      type: object
+      required: [description, quantity]
+      properties:
+        description: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        weightKg: { type: [number, 'null'], exclusiveMinimum: 0 }
