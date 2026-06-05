@@ -1,10 +1,11 @@
 asyncapi: 3.0.0
 info:
   title: Logistics Platform Events
-  version: 0.3.0
+  version: 0.5.0
   description: |
     All async events flowing through the logistics.events RabbitMQ topic exchange.
     v0.3.0 adds driver.availability.changed (user-service).
+    v0.5.0 adds dispatch.assignment.failed (dispatch-service) + the dispatch-service consumer of delivery.completed.
 
 servers:
   rabbitmq:
@@ -90,6 +91,13 @@ channels:
       DispatchDriverAssigned:
         $ref: '#/components/messages/DispatchDriverAssigned'
 
+  dispatchAssignmentFailed:
+    address: 'dispatch.assignment.failed'
+    description: Published by dispatch-service when all driver offers for an order are rejected and no driver could be assigned.
+    messages:
+      DispatchAssignmentFailed:
+        $ref: '#/components/messages/DispatchAssignmentFailed'
+
   deliveryInTransit:
     address: 'delivery.in_transit'
     description: Consumed by order-service. Produced by dispatch/tracking (later phase) when a delivery goes in transit.
@@ -138,6 +146,9 @@ operations:
   receiveDispatchDriverAssigned:
     action: receive
     channel: { $ref: '#/channels/dispatchDriverAssigned' }
+  publishDispatchAssignmentFailed:
+    action: send
+    channel: { $ref: '#/channels/dispatchAssignmentFailed' }
   receiveDeliveryInTransit:
     action: receive
     channel: { $ref: '#/channels/deliveryInTransit' }
@@ -378,6 +389,26 @@ components:
             properties:
               orderId: { type: string, format: uuid }
               driverId: { type: string, format: uuid }
+            additionalProperties: false
+
+    DispatchAssignmentFailed:
+      name: DispatchAssignmentFailed
+      title: Dispatch Assignment Failed
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, eventType, eventVersion, occurredAt, correlationId, producer, data]
+        allOf:
+          - $ref: '../schemas/event-envelope.json'
+        properties:
+          eventType: { const: dispatch.assignment.failed }
+          producer: { const: dispatch-service }
+          data:
+            type: object
+            required: [orderId, reason]
+            properties:
+              orderId: { type: string, format: uuid }
+              reason: { type: string, enum: [all_offers_rejected] }
             additionalProperties: false
 
     DeliveryInTransit:
