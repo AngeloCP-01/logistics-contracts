@@ -6,6 +6,7 @@ info:
     All async events flowing through the logistics.events RabbitMQ topic exchange.
     v0.3.0 adds driver.availability.changed (user-service).
     v0.5.0 adds dispatch.assignment.failed (dispatch-service) + the dispatch-service consumer of delivery.completed.
+    v0.6.0 marks tracking-service the producer of delivery.in_transit + delivery.completed and adds the tracking-service OpenAPI + WS protocol doc.
 
 servers:
   rabbitmq:
@@ -100,14 +101,14 @@ channels:
 
   deliveryInTransit:
     address: 'delivery.in_transit'
-    description: Consumed by order-service. Produced by dispatch/tracking (later phase) when a delivery goes in transit.
+    description: Produced by tracking-service on driver pickup. Consumed by order-service (reflects in_transit).
     messages:
       DeliveryInTransit:
         $ref: '#/components/messages/DeliveryInTransit'
 
   deliveryCompleted:
     address: 'delivery.completed'
-    description: Consumed by order-service. Produced by dispatch/tracking (later phase) when a delivery is completed.
+    description: Produced by tracking-service on driver completion. Consumed by order-service (reflects completed) + dispatch-service (frees the driver).
     messages:
       DeliveryCompleted:
         $ref: '#/components/messages/DeliveryCompleted'
@@ -154,6 +155,12 @@ operations:
     channel: { $ref: '#/channels/deliveryInTransit' }
   receiveDeliveryCompleted:
     action: receive
+    channel: { $ref: '#/channels/deliveryCompleted' }
+  publishDeliveryInTransit:
+    action: send
+    channel: { $ref: '#/channels/deliveryInTransit' }
+  publishDeliveryCompleted:
+    action: send
     channel: { $ref: '#/channels/deliveryCompleted' }
 
 components:
@@ -422,6 +429,7 @@ components:
           - $ref: '../schemas/event-envelope.json'
         properties:
           eventType: { const: delivery.in_transit }
+          producer: { const: tracking-service }
           data:
             type: object
             required: [orderId]
@@ -440,6 +448,7 @@ components:
           - $ref: '../schemas/event-envelope.json'
         properties:
           eventType: { const: delivery.completed }
+          producer: { const: tracking-service }
           data:
             type: object
             required: [orderId]

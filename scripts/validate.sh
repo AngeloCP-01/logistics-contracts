@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "==> Validating OpenAPI specs..."
-npx redocly lint openapi/auth-service.yaml openapi/user-service.yaml openapi/order-service.yaml openapi/dispatch-service.yaml
+npx redocly lint openapi/auth-service.yaml openapi/user-service.yaml openapi/order-service.yaml openapi/dispatch-service.yaml openapi/tracking-service.yaml
 
 echo "==> Validating AsyncAPI spec..."
 npx asyncapi validate events/asyncapi.yaml

@@ -27,7 +27,7 @@ The single source of truth that every other repo depends on for cross-service sh
 - **Error format**: every service returns RFC 7807 Problem Details with `application/problem+json`.
 - **Type generation**: Node TS types are generated from JSON Schemas via `json-schema-to-typescript`. Generated files have a "DO NOT EDIT" banner.
 
-## Current event catalog (v0.5.0)
+## Current event catalog (v0.6.0)
 
 | Routing key                         | Producer         | Phase added |
 | ----------------------------------- | ---------------- | ----------- |
@@ -42,10 +42,14 @@ The single source of truth that every other repo depends on for cross-service sh
 | `order.status.changed`              | order-service    | 3           |
 | `order.cancelled`                   | order-service    | 3           |
 | `dispatch.assignment.failed`        | dispatch-service | 4           |
+| `delivery.in_transit`               | tracking-service | 5           |
+| `delivery.completed`                | tracking-service | 5           |
 
-Order-service also **consumes** (message shapes declared in v0.4.0, producers ship later): `dispatch.driver.assigned` (Phase 4), `delivery.in_transit` + `delivery.completed` (Phase 5).
+Order-service also **consumes** (message shapes declared in v0.4.0, producers ship in Phase 5): `dispatch.driver.assigned` (Phase 4), `delivery.in_transit` + `delivery.completed` (Phase 5).
 
 Dispatch-service **consumes**: `order.created` + `driver.availability.changed` + `order.cancelled` + `delivery.completed` (the last to free a driver back into the available pool on completion).
+
+Tracking-service **consumes** `order.created` + `dispatch.driver.assigned` (into the `tracking_orders` authz projection); **produces** `delivery.in_transit` + `delivery.completed`.
 
 ## Layout (after Phase 0 ships)
 
@@ -54,6 +58,9 @@ events/asyncapi.yaml            # AsyncAPI 3.0 spec for all events
 openapi/                        # OpenAPI 3.1, one per service
   auth-service.yaml
   user-service.yaml
+  tracking-service.yaml
+docs/
+  tracking-ws.md                # tracking-service WebSocket (Socket.IO) protocol
 schemas/                        # JSON Schemas (the source of truth)
   event-envelope.json
   problem-details.json
