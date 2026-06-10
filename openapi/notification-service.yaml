@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Notification Service API
+  version: 0.7.0
+  description: In-app notification feed + email preferences. Notifications are produced asynchronously by consuming platform events; this HTTP surface is read/manage-only.
+servers:
+  - url: https://api.example.com/v1
+    description: Via the gateway (prepends /v1)
+security:
+  - bearerAuth: []
+paths:
+  /notifications:
+    get:
+      summary: List my in-app notifications (newest first, cursor-paginated)
+      parameters:
+        - { name: cursor, in: query, required: false, schema: { type: string } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [unread] } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPage' } } } }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+  /notifications/{id}/read:
+    post:
+      summary: Mark a notification read
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Marked read }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+        '404': { $ref: 'common.yaml#/components/responses/NotFound' }
+  /notifications/preferences:
+    get:
+      summary: My notification preferences
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+    put:
+      summary: Update my notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Preferences' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Preferences' } } } }
+        '400': { $ref: 'common.yaml#/components/responses/BadRequest' }
+        '401': { $ref: 'common.yaml#/components/responses/Unauthorized' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Notification:
+      type: object
+      required: [id, type, subject, body, data, createdAt, readAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string }
+        subject: { type: string }
+        body: { type: string }
+        data: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: [string, 'null'], format: date-time }
+    NotificationPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+        nextCursor: { type: [string, 'null'] }
+    Preferences:
+      type: object
+      required: [emailEnabled]
+      properties:
+        emailEnabled: { type: boolean }
