@@ -38,3 +38,5 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 The `publish.yml` workflow validates, builds, runs tests, and publishes to GitHub Packages.
+
+> Part of the [AI Logistics & Delivery Management Platform](https://github.com/AngeloCP-01/logistics-web#readme) — see the web repo for the full architecture overview.
